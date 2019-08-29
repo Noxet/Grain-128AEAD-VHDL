@@ -1,0 +1,255 @@
+#
+# Compile the stuff for the security .
+#
+# Use: source <file>
+#
+
+remove_design -all
+
+
+# Write comments what max frequency is for each cipher and version. 
+set clk_period  0.48
+
+set path_analy "./Codes/Grain_AEAD/v11/32"
+
+
+#Grain_AEAD 32 para Version 1: 
+#set clk_period 0.762
+
+#Grain_AEAD 1 para Version 1:
+#set clk_period 0.5
+
+#Grain_AEAD 2 para Version 1:
+#set clk_period 0.51
+
+#Grain_AEAD 32 para Version 2: Without feedback
+#set clk_period 0.525
+
+
+
+#Grain_AEAD 1 para Version 3: (with and without feedback)
+#set clk_period 0.49
+
+#Grain_AEAD 1 para Version 4: (with and without feedback)
+#set clk_period 0.39
+
+#Grain_AEAD 1 para Version 3.6: (TOO BAD AREA WE DON*T USE this one)
+#set clk_period 0.325
+
+#Grain_AEAD 1 para version 3.7: (SLIGHT INCREASE IN AREA, but big speed increase).
+#set clk_period 0.325
+
+
+
+################### set up power analysis mode #####################
+# step 1: enalbe power analysis and set analysis mode 
+
+set power_enable_analysis true
+set power_analysis_mode time_based
+
+
+##################################### set up libaries ############################
+##################################### set up libaries ############################
+# step 2: link to your design libary 
+
+
+set search_path "/usr/local-eit/cad2/cmpstm/stm065v536/CORE65LPLVT_5.1/libs \
+/usr/local-eit/cad2/cmpstm/stm065v536/CLOCK65LPLVT_3.1/libs \
+
+/usr/local-eit/cad2/cmpstm/dicp18/LU_PADS_65nm \
+/usr/local-eit/cad2/cmpstm/stm065v536/PRHS65_7.0.a/libs "
+
+set link_library "* CLOCK65LPLVT_nom_1.10V_25C.db \
+CORE65LPLVT_nom_1.10V_25C.db \
+
+
+Pads_Oct2012.db "
+
+
+
+
+set target_library "CLOCK65LPLVT_nom_1.10V_25C.db \
+CORE65LPLVT_nom_1.10V_25C.db \
+
+
+Pads_Oct2012.db "
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+################# Analyze the files
+source "./Analyze.dv"
+###############################
+##########---NEW-28-FEB-2019----------
+
+
+#Version 2 (This will give less power used on the first start of program)
+#set_operating_condition typical
+set_max_fanout 20 [get_designs grainTop]
+
+##########
+set_flatten true -effort high
+set_structure -boolean true 
+set_structure -timing true
+###############################
+
+
+###########################################
+# Make sure the compiler does not exchange pads.
+# set_dont_touch [ get_cells *Pad*] true
+# set_dont_touch clkpad true
+
+# Fix the clock (ns).
+#create_clock -period 20 -name myclk clk
+#set_clock_uncertainty 1 myclk
+create_clock iGraintopClk  -period $clk_period -name clk
+#set_clock_uncertainty [expr "0.02*$clk_period"] clk
+#set_fix_hold clk
+#set_clock_transition 0.25 -rise [get_clocks clk]
+#set_clock_transition 0.25 -fall [get_clocks clk]
+
+#ungroup -all -flatten
+
+#change_names -rules verilog -hierarchy
+#############################Compiling_Method#######################
+# Do the real synthesis.
+############Max speed & smallest Area {low, medium, high} method 1
+#set_max_area 0.0
+#set_max_dynamic_power 0
+#compile -map_effort high  -area_effort high
+#set optimize registers true
+############# Refine circuit area and timing#########
+#set_ultra_optimization true
+#set_ultra_optimization -force
+#compile -map_effort high -incremental_map
+
+
+#compile_ultra -gate_clock -no_autoungroup
+
+
+compile_ultra -no_autoungroup
+#-timing -no_autoungroup 
+
+
+
+
+#set_false_path -through yfuncInst_31/iYfuncNfsr[1]
+ 
+#compile_ultra -no_autoungroup  -gate_clock -timing
+#-no_autoungroup 
+#Use no autoungroup for synt script 2. 3 is without
+
+
+
+
+
+
+#Version 2 (This will give less power used on the first start of program)
+sizeof_collection [get_cells * -hier -filter ref_name=~TIE*]
+optimize_netlist -area
+
+
+
+# OR '-retime -no autoungroup'
+################# Save the Work for Design_Vision######################################
+##### Below commands remove unconnected ports 
+#remove_unconnected_ports -blast_buses [find -hierarchy cell "*"]
+
+##### Below SynopsysDb file
+# write -hierarchy -format db -output [format "%s%s%s" "netlists/" $TOP "_syn.db"]
+##### Verilog gate level netlist 
+# write -hierarchy -format verilog -output [format "%s%s%s" "netlists/" $TOP "_syn.v"]
+##### Back annotated time info fo gate-level netlist
+# write_sdf -context verilog -version 1.0 [format "%s%s%s" "netlists/" $TOP "_syn.sdf"]
+##### Parasitic info (RC) of the gate-netlist
+# write_parasitics -output [format "%s%s%s" "netlists/" $TOP "_syn.spef"] -format reduced
+# write_sdc [format "%s%s%s" "netlists/" $TOP "_syn.sdc"]
+
+write -hierarchy -format ddc -output ./netlists/crypto.ddc
+write -hierarchy -format verilog -output ./netlists/crypto.v
+write -hierarchy -format vhdl -output ./netlists/crypto.vhdl
+
+
+write_parasitics -o ./netlists/Crypto.spef
+# gate level simulation
+write_sdf ./netlists/Crypto.sdf
+
+# place and route requiremnt
+write_sdc ./netlists/Crypto.sdc
+
+###########################Check Design and Problem in Synthesis####################################
+check_design
+report_constraint -all_violators
+
+#########################################
+
+
+
+
+report_area -hierarchy > $path_analy/area.txt  
+report_power > $path_analy/power.txt
+report_reference -hierarchy > $path_analy/gatecount.txt
+report_clock > $path_analy/clock.txt
+report_qor > $path_analy/qor.txt
+report_timing > $path_analy/timing.txt
+
+
+
+
+
+
+
+
+#report commands
+#report_constraint,
+#report_area,
+#report_design,
+#report_area -hierarchy > textfilename.txt  
+
+#--------it will give information of each block 
+#report_timing,
+
+
+#report_reference,
+
+#report_reference -hierarchy > textfilename.txt  
+#above commad will report  about the area of each vhdl blocks that you had used 
+
+#report_power > textfilename.txt
+
+
+#report_qor
+

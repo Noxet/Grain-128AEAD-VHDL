@@ -1,0 +1,27 @@
+#
+# Compile the stuff for the security .
+#
+# Use: source <file>
+#
+
+
+################# Analyze the files
+analyze -library WORK -format vhdl $path_analy/grain_top.vhd
+analyze -library WORK -format vhdl $path_analy/grain.vhd
+#analyze -library WORK -format vhdl $path_analy/y_func.vhd
+#analyze -library WORK -format vhdl $path_analy/g_func.vhd
+#analyze -library WORK -format vhdl $path_analy/f_func.vhd
+analyze -library WORK -format vhdl $path_analy/controller.vhd
+analyze -library WORK -format vhdl $path_analy/accumulator.vhd
+#analyze -library WORK -format vhdl $path_analy/accumLogic.vhd
+
+analyze -library WORK -format vhdl $path_analy/auth_pipeline.vhd 
+
+analyze -library WORK -format vhdl $path_analy/clock_div.vhd
+# Version 2
+
+
+#Version 11 have auth pipelining, remove g, y and accumlogic. 
+elaborate grainTop -architecture STRUCTURAL \
+  -library DEFAULT 
+

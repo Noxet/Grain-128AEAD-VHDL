@@ -1,0 +1,208 @@
+#
+# Compile the stuff for the security .
+#
+# Use: source <file>
+#
+remove_design -all
+
+
+# 100 kHz
+set clk_period 10000
+
+# 10 MHZ
+#set clk_period 100
+
+set path_analy "./Codes/Grain_AEAD/v10/1"
+
+
+################### set up power analysis mode #####################
+# step 1: enalbe power analysis and set analysis mode 
+
+#set power_enable_analysis true
+#set power_analysis_mode time_based
+
+
+##################################### set up libaries ############################
+# step 2: link to your design libary 
+
+
+set search_path "/usr/local-eit/cad2/cmpstm/stm065v536/CORE65LPHVT_5.1/libs \
+/usr/local-eit/cad2/cmpstm/stm065v536/CLOCK65LPHVT_3.1/libs \
+/usr/local-eit/cad2/cmpstm/stm065v536/CLOCK65LPSVT_3.1/libs \
+/usr/local-eit/cad2/cmpstm/mem2011/SPHD110420-48158@1.0/libs \
+/usr/local-eit/cad2/cmpstm/dicp18/LU_PADS_65nm \
+/usr/local-eit/cad2/cmpstm/stm065v536/PRHS65_7.0.a/libs "
+
+set link_library "* CORE65LPHVT_nom_1.10V_25C.db \
+CLOCK65LPSVT_nom_1.10V_25C.db \
+SPHD110420_wc_1.10V_m40C_10y.db \
+Pads_Oct2012.db "
+
+#set link_path "* CLOCK65LPLVT_nom_1.10V_25C.db \
+#CORE65LPLVT_nom_1.10V_25C.db \
+#CLOCK65LPHVT_nom_1.10V_25C.db \
+#CORE65LPHVT_nom_1.10V_25C.db \
+#CLOCK65LPSVT_nom_1.10V_25C.db \
+#CORE65LPSVT_nom_1.10V_25C.db \
+#SPHD110420_wc_1.10V_m40C_10y.db \
+#Pads_Oct2012.db "
+
+
+set target_library "CORE65LPHVT_nom_1.10V_25C.db \
+SPHD110420_wc_1.10V_m40C_10y.db \
+Pads_Oct2012.db "
+                    
+
+#set symbol_library "fsc0l_d_generic_core.sdb foc0l_a33_t33_generic_io.sdb""
+#set synthetic_library "standard.sldb dw_foundation.sldb"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+################# Analyze the files
+source "./Analyze.dv"
+###########
+#set_flatten true -effort high
+#set_structure -boolean true 
+#set_structure -timing true
+
+
+##########
+
+# Make sure the compiler does not exchange pads.
+# set_dont_touch [ get_cells *Pad*] true
+# set_dont_touch clkpad true
+
+# Fix the clock (ns).
+#create_clock -period 20 -name myclk clk
+#set_clock_uncertainty 1 myclk
+create_clock iGraintopClk  -period $clk_period -name clk
+#set_clock_uncertainty [expr "0.02*$clk_period"] clk
+#set_fix_hold clk
+#set_clock_transition 0.25 -rise [get_clocks clk]
+#set_clock_transition 0.25 -fall [get_clocks clk]
+
+#ungroup -all -flatten
+
+#change_names -rules verilog -hierarchy
+#############################Compiling_Method#######################
+# Do the real synthesis.
+############Max speed & smallest Area {low, medium, high} method 1
+#set_max_area 0.0
+#compile -map_effort high  -area_effort high
+#set optimize registers true
+############# Refine circuit area and timing#########
+#set_ultra_optimization true
+#set_ultra_optimization -force
+#compile -map_effort high -incremental_map
+
+#############-Wire_Load-###########
+#set auto_wire_load_selection false
+#current_design grainTop
+#set_wire_load_mode enclosed
+#set_wire_load_model -name "area_12Kto18K"
+
+
+
+####################################
+
+#set_max_transition 5.0 [current_design]
+##########################################
+#compile -map_effort high -area_effort high -power_effort high
+compile_ultra -gate_clock
+# OR '-retime -no autoungroup'
+################# Save the Work for Design_Vision######################################
+##### Below commands remove unconnected ports 
+#remove_unconnected_ports -blast_buses [find -hierarchy cell "*"]
+
+##### Below SynopsysDb file
+# write -hierarchy -format db -output [format "%s%s%s" "netlists/" $TOP "_syn.db"]
+##### Verilog gate level netlist 
+# write -hierarchy -format verilog -output [format "%s%s%s" "netlists/" $TOP "_syn.v"]
+##### Back annotated time info fo gate-level netlist
+# write_sdf -context verilog -version 1.0 [format "%s%s%s" "netlists/" $TOP "_syn.sdf"]
+##### Parasitic info (RC) of the gate-netlist
+# write_parasitics -output [format "%s%s%s" "netlists/" $TOP "_syn.spef"] -format reduced
+# write_sdc [format "%s%s%s" "netlists/" $TOP "_syn.sdc"]
+
+write -hierarchy -format ddc -output ./netlists/crypto.ddc
+write -hierarchy -format verilog -output ./netlists/crypto.v
+write -hierarchy -format vhdl -output ./netlists/crypto.vhdl
+
+
+write_parasitics -o ./netlists/Crypto.spef
+# gate level simulation
+write_sdf ./netlists/Crypto.sdf
+
+# place and route requiremnt
+write_sdc ./netlists/Crypto.sdc
+
+
+
+
+###########################Check Design and Problem in Synthesis####################################
+check_design
+report_constraint -all_violators
+
+#########################################
+
+report_area -hierarchy > area.txt  
+report_power > power.txt
+report_reference -hierarchy > gatecount.txt 
+report_qor > qor.txt
+
+report_reference -hierarchy > $path_analy/gatecount.txt
+
+
+
+#report commands
+#report_constraint,
+#report_area,
+#report_design,
+#report_area -hierarchy > textfilename.txt  
+
+#--------it will give information of each block 
+#report_timing,
+
+
+#report_reference,
+
+#report_reference -hierarchy > textfilename.txt  
+#above commad will report  about the area of each vhdl blocks that you had used 
+
+#report_power > textfilename.txt
+
+
+#report_qor
+
