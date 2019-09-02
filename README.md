@@ -6,4 +6,4 @@ When synthesizing the design, the only warning that should occur, for paralleliz
 
 See the .vhd files for comments on how to configure the design to your liking.
 
-Developed by [Mattias Sönnerup](Zerox-1337), [Ripudaman Khattar](ripudamank2) and [Jonathan Sönnerup](https://github.com/Noxet)
+Developed by [Mattias Sönnerup](https://github.com/Zerox-1337), [Ripudaman Khattar](https://github.com/ripudamank2) and [Jonathan Sönnerup](https://github.com/Noxet)
